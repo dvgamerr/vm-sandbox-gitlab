@@ -1,10 +1,10 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/6"
-  config.vm.name = "vm-sandbox-gitlab.local"
+  # config.vm.name = "vm-sandbox-gitlab"
   config.vm.hostname = "vm-sandbox-gitlab.local"
   config.vm.box_check_update = false
-  config.vm.network "forwarded_port", guest: 80, host: 80, host_ip: "127.0.0.1"
-  config.vm.network "public_network"
+  config.vm.network "forwarded_port", guest: 80, host: 80
+  config.vm.network "forwarded_port", guest: 443, host: 443 
 
   config.vm.provider "virtualbox" do |vb|
     vb.cpus = "2"
@@ -14,10 +14,15 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: <<-SHELL
     yum update
     yum upgrade -y
+
+    sudo yum install -y curl policycoreutils-python openssh-server cronie
+    sudo lokkit -s http -s ssh
     
-    $gitlab=gitlab-ce-12.5.3-ce.0.el6.x86_64.rpm
-    $src=/app/gitlab
-    mkdir -p $src && cd $src
-    wget --content-disposition https://packages.gitlab.com/gitlab/gitlab-ce/packages/el/6/$gitlab/download.rpm
+    sudo yum install postfix
+    sudo service postfix start
+    sudo chkconfig postfix on
+
+    curl -k https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
+    sudo EXTERNAL_URL="https://vm-sandbox-gitlab.local" yum -y install gitlab-ce
   SHELL
 end
